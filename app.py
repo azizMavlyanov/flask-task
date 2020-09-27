@@ -1,23 +1,35 @@
-import time
-
-import redis
 from flask import Flask
+import os
+import socket
 
 app = Flask(__name__)
-cache = redis.Redis(host='redis', port=6379)
 
-def get_hit_count():
-    retries = 5
-    while True:
-        try:
-            return cache.incr('hits')
-        except redis.exceptions.ConnectionError as exc:
-            if retries == 0:
-                raise exc
-            retries -= 1
-            time.sleep(0.5)
-
-@app.route('/')
+@app.route("/")
 def hello():
-    count = get_hit_count()
-    return 'Привет! Меня посещали {} раз(а).\n'.format(count)
+
+    import sqlite3
+    conn = sqlite3.connect('example.db')
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''CREATE TABLE increment ( icount INT NOT NULL DEFAULT 0 )''')
+        cursor.execute('''INSERT INTO increment (icount) VALUES (0)''')
+        conn.commit()
+    except Exception as e:
+        print('DB already created')
+
+    html = "<h3>Привет!</h3>" \
+           "<b>Hostname:</b> {hostname}<br/>"
+    return html.format(name=os.getenv("NAME", "world"), hostname=socket.gethostname())
+
+
+@app.route("/plus")
+def plus():
+    import sqlite3
+    conn = sqlite3.connect('example.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT icount FROM increment')
+    current = cursor.fetchone()[0] + 1
+    cursor.execute(f'UPDATE increment SET icount = {current}')
+    conn.commit()
+    html = f"<h3>Количество: {current}</h3>"
+    return html
