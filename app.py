@@ -27,6 +27,12 @@ def plus():
     import sqlite3
     conn = sqlite3.connect('example.db')
     cursor = conn.cursor()
+    try:
+        cursor.execute('''CREATE TABLE increment ( icount INT NOT NULL DEFAULT 0 )''')
+        cursor.execute('''INSERT INTO increment (icount) VALUES (0)''')
+        conn.commit()
+    except Exception as e:
+        print('DB already created')
     cursor.execute('SELECT icount FROM increment')
     current = cursor.fetchone()[0] + 1
     cursor.execute(f'UPDATE increment SET icount = {current}')
